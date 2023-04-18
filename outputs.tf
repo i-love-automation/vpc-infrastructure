@@ -1,7 +1,13 @@
 locals {
   export_as_organization_variable = {
-    "vpc_id"               = aws_vpc.vpc.id
-    "privates_subnets_ids" = [aws_subnet.private_1.id, aws_subnet.private_2.id]
+    "vpc_id" = {
+      hcl   = false
+      value = aws_vpc.vpc.id
+    }
+    "privates_subnets_ids" = {
+      hcl   = true
+      value = [aws_subnet.private_1.id, aws_subnet.private_2.id]
+    }
   }
 }
 
@@ -18,8 +24,9 @@ resource "tfe_variable" "output_values" {
   for_each = local.export_as_organization_variable
 
   key             = each.key
-  value           = jsonencode(each.value)
+  value           = each.value.hcl ? jsonencode(each.value.value) : tostring(each.value.value)
   category        = "terraform"
   description     = "${each.key} variable from the ${var.service} service"
   variable_set_id = data.tfe_variable_set.variables.id
+  hcl             = each.value.hcl
 }
